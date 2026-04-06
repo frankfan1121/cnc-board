@@ -151,7 +151,13 @@
   }
   .btn-photo:active { background: #1e40af; }
   .photo-input { display: none; }
-  .photo-thumb { width: 100%; border-radius: 8px; border: 2px solid var(--border); display: block; max-height: 200px; object-fit: cover; }
+  .photo-thumb { width: 72px; height: 72px; border-radius: 8px; border: 2px solid var(--accent); display: block; object-fit: cover; cursor: pointer; }
+  .photo-count { font-size: 13px; font-weight: 700; color: #60a5fa; margin-top: 4px; }
+  /* Lightbox */
+  .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; }
+  .lightbox.open { display:flex; }
+  .lightbox img { max-width:95vw; max-height:90vh; border-radius:10px; object-fit:contain; }
+  .lightbox-close { position:fixed; top:16px; right:20px; font-size:36px; color:#fff; cursor:pointer; font-weight:900; line-height:1; }
 
   @media (max-width: 480px) {
     .form-grid { grid-template-columns: 1fr; }
@@ -318,7 +324,7 @@ async function handlePhoto(id, input) {
     const o = orders.find(o => o.id === id);
     if (o) o.photo = photo;
     const img = document.getElementById('photo-' + id);
-    if (img) { img.src = photo; img.style.display = 'block'; }
+    if (img) { img.src = photo; img.style.display = 'block'; img.onclick = function(){ openLightbox(photo); }; }
     await apiPost({ action: 'updatePhoto', id, photo });
     setSyncStatus('ok');
   } catch(e) { setSyncStatus('err'); alert('照片上傳失敗，請重試'); }
@@ -363,8 +369,8 @@ function render() {
     const statusLabel = STATUS_LABELS[o.status] || '待處理';
     const statusCls = STATUS_CLS[o.status] || 's0';
     const photoHtml = o.photo
-      ? `<img id="photo-${o.id}" class="photo-thumb" src="${o.photo}" style="display:block">`
-      : `<img id="photo-${o.id}" class="photo-thumb" style="display:none">`;
+      ? `<img id="photo-${o.id}" class="photo-thumb" src="${o.photo}" style="display:block" onclick="openLightbox(this.src)" title="點擊放大">`
+      : `<img id="photo-${o.id}" class="photo-thumb" style="display:none" onclick="openLightbox(this.src)">`;
     // 交期格式修正
     let deadlineDisplay = '未設定';
     if (o.deadline) {
@@ -422,8 +428,20 @@ function render() {
   }).join('');
 }
 
+function openLightbox(src) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+}
+
 loadOrders();
 setInterval(loadOrders, 30000);
 </script>
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
+  <img id="lightbox-img" src="" alt="照片">
+</div>
 </body>
 </html>
