@@ -6,16 +6,16 @@
 <title>外包追蹤進度表</title>
 <style>
   :root {
-    --bg: #0f1117;
-    --surface: #1a1d27;
-    --card: #22263a;
-    --border: #2e3354;
+    --bg: #f5f0e8;
+    --surface: #fffdf7;
+    --card: #ffffff;
+    --border: #e2d9c8;
     --accent: #2563eb;
     --accent2: #1d4ed8;
     --red: #dc2626;
     --green: #16a34a;
-    --text: #f1f5f9;
-    --muted: #94a3b8;
+    --text: #1e1a14;
+    --muted: #7c6f5a;
     --radius: 10px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -26,7 +26,7 @@
     min-height: 100vh;
   }
   header {
-    background: #111827;
+    background: #2d2a24;
     border-bottom: 3px solid var(--accent);
     padding: 18px 24px;
     display: flex;
@@ -38,11 +38,11 @@
   .sync-status {
     font-size: 13px; font-weight: 700;
     padding: 5px 12px; border-radius: 20px;
-    background: #1e293b; color: var(--muted);
+    background: #e8e2d8; color: var(--muted);
   }
   .sync-status.ok { background: #14532d; color: #4ade80; }
   .sync-status.err { background: #450a0a; color: #f87171; }
-  .sync-status.loading { background: #1e3a5f; color: #60a5fa; }
+  .sync-status.loading { background: #dbeafe; color: #1d4ed8; }
 
   .form-panel {
     background: var(--surface);
@@ -64,7 +64,7 @@
   .form-group.full { grid-column: 1 / -1; }
   label { font-size: 14px; font-weight: 700; color: var(--muted); }
   input, select {
-    background: #111827; border: 2px solid var(--border);
+    background: #2d2a24; border: 2px solid var(--border);
     border-radius: 8px; color: var(--text); font-size: 16px;
     font-weight: 600; padding: 12px 14px; outline: none;
     width: 100%; font-family: inherit; -webkit-appearance: none;
@@ -105,13 +105,13 @@
 
   .card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; overflow: hidden; }
   .card-top { display: flex; align-items: stretch; }
-  .card-sort { display: flex; flex-direction: column; background: #1a1d27; border-right: 2px solid var(--border); min-width: 44px; }
+  .card-sort { display: flex; flex-direction: column; background: #f0ebe0; border-right: 2px solid var(--border); min-width: 44px; }
   .sort-btn {
     flex: 1; background: none; border: none; color: var(--muted);
     font-size: 20px; cursor: pointer;
     display: flex; align-items: center; justify-content: center; padding: 8px;
   }
-  .sort-btn:active { background: var(--border); color: #fff; }
+  .sort-btn:active { background: #d6cebb; color: var(--text); }
   .card-body { flex: 1; padding: 14px 14px 10px; }
   .card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
   .card-customer { font-size: 20px; font-weight: 900; color: #fff; }
@@ -132,15 +132,15 @@
   .status-select {
     flex: 1; padding: 10px 12px; font-size: 15px; font-weight: 700;
     border-radius: 8px; border: 2px solid var(--border);
-    background: #111827; color: var(--text); font-family: inherit; cursor: pointer;
+    background: #2d2a24; color: var(--text); font-family: inherit; cursor: pointer;
     -webkit-appearance: none;
   }
   .status-badge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 800; white-space: nowrap; }
-  .s0 { background: #1e293b; color: #94a3b8; }
-  .s1 { background: #1c3a5e; color: #60a5fa; }
-  .s2 { background: #1c3a2e; color: #4ade80; }
-  .s3 { background: #3b2a1c; color: #fb923c; }
-  .s4 { background: #2a1c3b; color: #c084fc; }
+  .s0 { background: #e8e2d8; color: #7c6f5a; }
+  .s1 { background: #dbeafe; color: #1d4ed8; }
+  .s2 { background: #dcfce7; color: #15803d; }
+  .s3 { background: #ffedd5; color: #c2410c; }
+  .s4 { background: #f3e8ff; color: #7e22ce; }
 
   .photo-row { padding: 10px 0 0; display: flex; flex-direction: column; gap: 8px; }
   .btn-photo {
@@ -154,7 +154,7 @@
   .photo-thumb { width: 72px; height: 72px; border-radius: 8px; border: 2px solid var(--accent); display: block; object-fit: cover; cursor: pointer; }
   .photo-count { font-size: 13px; font-weight: 700; color: #60a5fa; margin-top: 4px; }
   /* Lightbox */
-  .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.92); z-index:9999; align-items:center; justify-content:center; }
+  .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; }
   .lightbox.open { display:flex; }
   .lightbox img { max-width:95vw; max-height:90vh; border-radius:10px; object-fit:contain; }
   .lightbox-close { position:fixed; top:16px; right:20px; font-size:36px; color:#fff; cursor:pointer; font-weight:900; line-height:1; }
