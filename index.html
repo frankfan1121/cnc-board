@@ -254,7 +254,7 @@ async function addOrder() {
     id: Date.now().toString(),
     customer, part, vendor, qty, deadline,
     status: '0', photo: '',
-    createdAt: new Date().toLocaleString('zh-TW')
+    createdAt: (function(){ const n=new Date(); return n.getFullYear()+'/'+(n.getMonth()+1<10?'0':'')+(n.getMonth()+1)+'/'+(n.getDate()<10?'0':'')+n.getDate()+' '+(n.getHours()<10?'0':'')+n.getHours()+':'+(n.getMinutes()<10?'0':'')+n.getMinutes(); })()
   };
 
   busy = true;
@@ -368,9 +368,23 @@ function render() {
     if (o.createdAt) {
       const cs = String(o.createdAt);
       if (cs.includes('T')) {
+        // ISO format
         createdDisplay = cs.substring(0,16).replace('T',' ').replace(/-/g,'/');
+      } else if (cs.includes('上午') || cs.includes('下午')) {
+        // zh-TW locale format - parse and reformat
+        try {
+          const d = new Date(cs);
+          if (!isNaN(d)) {
+            const y = d.getFullYear();
+            const mo = String(d.getMonth()+1).padStart(2,'0');
+            const day = String(d.getDate()).padStart(2,'0');
+            const hr = String(d.getHours()).padStart(2,'0');
+            const mi = String(d.getMinutes()).padStart(2,'0');
+            createdDisplay = y+'/'+mo+'/'+day+' '+hr+':'+mi;
+          } else { createdDisplay = cs.substring(0,16); }
+        } catch(e) { createdDisplay = cs.substring(0,16); }
       } else {
-        createdDisplay = cs;
+        createdDisplay = cs.substring(0,16);
       }
     }
     return `
@@ -396,7 +410,7 @@ function render() {
           </div>
           <div class="note-row">
             <div class="note-label">📝 備註</div>
-            <textarea class="note-textarea" placeholder="輸入備註內容…" onblur="updateNote('${o.id}',this.value)">${o.status||''}</textarea>
+            <textarea class="note-textarea" placeholder="輸入備註內容…" onblur="updateNote('${o.id}',this.value)">${(o.status && o.status !== '0') ? o.status : ''}</textarea>
           </div>
           <div class="photo-row">
             <button class="btn-photo" onclick="document.getElementById('photo-input-${o.id}').click()">📷 拍照上傳</button>
