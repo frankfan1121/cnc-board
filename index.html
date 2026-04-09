@@ -3,426 +3,522 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>外包追蹤進度表</title>
+<title>工單看板</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f5f0e8;
-    --surface: #fffdf7;
-    --card: #ffffff;
-    --border: #e2d9c8;
-    --accent: #2563eb;
-    --accent2: #1d4ed8;
-    --red: #dc2626;
-    --green: #16a34a;
-    --text: #1e1a14;
-    --muted: #7c6f5a;
-    --radius: 10px;
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #222535;
+    --border: #2e3347;
+    --text: #e8eaf2;
+    --text-dim: #7c82a0;
+    --todo: #4a6cf7;
+    --todo-bg: rgba(74,108,247,0.12);
+    --doing: #f7a94a;
+    --doing-bg: rgba(247,169,74,0.12);
+    --review: #a94af7;
+    --review-bg: rgba(169,74,247,0.12);
+    --done: #4af7a0;
+    --done-bg: rgba(74,247,160,0.12);
+    --drag-over: rgba(255,255,255,0.06);
+    --radius: 12px;
+    --card-radius: 8px;
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
+
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif;
+    font-family: 'Noto Sans TC', sans-serif;
     min-height: 100vh;
+    overflow-x: auto;
   }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
   header {
-    background: #e8dfc8;
-    border-bottom: 3px solid #c8a96e;
-    padding: 18px 24px;
+    position: relative;
+    z-index: 1;
+    padding: 28px 32px 20px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 14px;
+    gap: 16px;
+    border-bottom: 1px solid var(--border);
   }
-  header h1 { font-size: 24px; font-weight: 900; letter-spacing: 2px; color: #1e1a14; }
-  .sync-status {
-    font-size: 13px; font-weight: 700;
-    padding: 5px 12px; border-radius: 20px;
-    background: #e8e2d8; color: var(--muted);
-  }
-  .sync-status.ok { background: #14532d; color: #4ade80; }
-  .sync-status.err { background: #450a0a; color: #f87171; }
-  .sync-status.loading { background: #dbeafe; color: #1d4ed8; }
 
-  .form-panel {
+  header .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  header h1 {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.3px;
+  }
+
+  header .tag-count {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .board-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 16px;
+    padding: 24px 32px 32px;
+    min-height: calc(100vh - 80px);
+    align-items: flex-start;
+  }
+
+  .column {
+    width: 280px;
+    flex-shrink: 0;
     background: var(--surface);
-    border: 2px solid var(--border);
     border-radius: var(--radius);
-    margin: 20px 16px 0;
-    padding: 20px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 120px);
+    transition: border-color 0.2s;
   }
-  .form-title {
-    font-size: 18px; font-weight: 800; margin-bottom: 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .form-title::before {
-    content: ''; width: 5px; height: 22px;
-    background: var(--accent); border-radius: 3px; display: inline-block;
-  }
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .form-group { display: flex; flex-direction: column; gap: 6px; }
-  .form-group.full { grid-column: 1 / -1; }
-  label { font-size: 14px; font-weight: 700; color: var(--muted); }
-  input, select {
-    background: #fffdf7; border: 2px solid #c8bfad;
-    border-radius: 8px; color: #1e1a14; font-size: 16px;
-    font-weight: 600; padding: 12px 14px; outline: none;
-    width: 100%; font-family: inherit; -webkit-appearance: none;
-  }
-  input:focus, select:focus { border-color: var(--accent); }
-  input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; width: 22px; height: 22px; }
 
-  .btn-add {
-    margin-top: 16px; width: 100%; padding: 16px;
-    background: var(--accent); color: #fff; border: none;
-    border-radius: 10px; font-size: 20px; font-weight: 900;
-    letter-spacing: 2px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
+  .column.drag-over {
+    border-color: var(--done);
+    background: var(--drag-over);
   }
-  .btn-add:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
-  .btn-add:not(:disabled):active { background: var(--accent2); }
 
-  .board-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin: 24px 16px 10px;
+  .col-header {
+    padding: 16px 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
   }
-  .board-title {
-    font-size: 18px; font-weight: 800;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .board-title::before {
-    content: ''; width: 5px; height: 22px;
-    background: var(--green); border-radius: 3px; display: inline-block;
-  }
-  #count-badge {
-    background: var(--border); color: var(--muted);
-    border-radius: 20px; font-size: 13px; font-weight: 700; padding: 3px 12px;
-  }
-  #cards-container { padding: 0 16px 80px; display: flex; flex-direction: column; gap: 14px; }
 
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--muted); font-size: 16px; font-weight: 600; }
-  .empty-state .icon { font-size: 48px; margin-bottom: 12px; }
-
-  .card { background: var(--card); border: 2px solid var(--border); border-radius: 12px; overflow: hidden; }
-  .card-top { display: flex; align-items: stretch; }
-  .card-sort { display: flex; flex-direction: column; background: #f0ebe0; border-right: 2px solid var(--border); min-width: 44px; }
-  .sort-btn {
-    flex: 1; background: none; border: none; color: var(--muted);
-    font-size: 20px; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; padding: 8px;
+  .col-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
   }
-  .sort-btn:active { background: #d6cebb; color: var(--text); }
-  .card-body { flex: 1; padding: 14px 14px 10px; }
-  .card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-  .card-customer { font-size: 20px; font-weight: 900; color: #1e1a14; }
-  .card-part { font-size: 13px; font-weight: 700; color: #7c6f5a; margin-top: 2px; }
-  .btn-delete {
-    background: var(--red); border: none; border-radius: 8px;
-    color: #fff; font-size: 20px; width: 40px; height: 40px;
-    flex-shrink: 0; cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .btn-delete:active { opacity: 0.7; }
-  .card-info-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; margin-bottom: 12px; }
-  .info-item { display: flex; flex-direction: column; gap: 2px; }
-  .info-label { font-size: 11px; font-weight: 700; color: var(--muted); }
-  .info-val { font-size: 15px; font-weight: 700; color: #1e1a14; }
 
-  .note-row { padding: 10px 0 0; border-top: 1px solid var(--border); }
-  .note-label { font-size: 13px; font-weight: 700; color: #7c6f5a; margin-bottom: 6px; }
-  .note-textarea {
-    width: 100%; padding: 10px 12px; font-size: 15px; font-weight: 600;
-    border-radius: 8px; border: 2px solid #c8bfad;
-    background: #fffdf7; color: #1e1a14; font-family: inherit;
-    resize: none; min-height: 70px; outline: none;
+  .col-title {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
   }
-  .note-textarea:focus { border-color: var(--accent); }
 
-  .photo-row { padding: 10px 0 0; display: flex; flex-direction: column; gap: 8px; }
-  .btn-photo {
-    width: 100%; padding: 14px; background: #1d4ed8;
-    color: #fff; border: none; border-radius: 10px;
-    font-size: 17px; font-weight: 900; letter-spacing: 1px;
-    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+  .col-count {
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--surface2);
+    padding: 2px 7px;
+    border-radius: 20px;
   }
-  .btn-photo:active { background: #1e40af; }
-  .photo-input { display: none; }
-  .photo-thumb { width: 72px; height: 72px; border-radius: 8px; border: 2px solid var(--accent); display: block; object-fit: cover; cursor: pointer; }
-  .photo-count { font-size: 13px; font-weight: 700; color: #60a5fa; margin-top: 4px; }
-  /* Lightbox */
-  .lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; align-items:center; justify-content:center; }
-  .lightbox.open { display:flex; }
-  .lightbox img { max-width:95vw; max-height:90vh; border-radius:10px; object-fit:contain; }
-  .lightbox-close { position:fixed; top:16px; right:20px; font-size:36px; color:#fff; cursor:pointer; font-weight:900; line-height:1; }
 
-  @media (max-width: 480px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .form-group.full { grid-column: auto; }
+  /* Column color themes */
+  .col-todo .col-dot { background: var(--todo); }
+  .col-todo .col-title { color: var(--todo); }
+  .col-doing .col-dot { background: var(--doing); }
+  .col-doing .col-title { color: var(--doing); }
+  .col-review .col-dot { background: var(--review); }
+  .col-review .col-title { color: var(--review); }
+  .col-done .col-dot { background: var(--done); }
+  .col-done .col-title { color: var(--done); }
+
+  .col-todo { border-top: 2px solid var(--todo); }
+  .col-doing { border-top: 2px solid var(--doing); }
+  .col-review { border-top: 2px solid var(--review); }
+  .col-done { border-top: 2px solid var(--done); }
+
+  .cards-list {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 80px;
+  }
+
+  .cards-list::-webkit-scrollbar { width: 4px; }
+  .cards-list::-webkit-scrollbar-track { background: transparent; }
+  .cards-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--card-radius);
+    padding: 12px 14px;
+    cursor: grab;
+    transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s, border-color 0.15s;
+    user-select: none;
+    animation: cardIn 0.25s ease;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card:active { cursor: grabbing; }
+
+  .card:hover {
+    border-color: #3e4460;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  }
+
+  .card.dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+  }
+
+  .card-id {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+
+  .card-title {
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.5;
+    margin-bottom: 10px;
+  }
+
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 500;
+    letter-spacing: 0.3px;
+  }
+
+  .priority-high { background: rgba(247,74,74,0.18); color: #f74a4a; }
+  .priority-mid  { background: rgba(247,169,74,0.18); color: var(--doing); }
+  .priority-low  { background: rgba(74,247,160,0.18); color: var(--done); }
+
+  .type-badge {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .card-assignee {
+    margin-left: auto;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4a6cf7, #a94af7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  /* Done column special style */
+  .col-done .card {
+    opacity: 0.75;
+  }
+  .col-done .card:hover { opacity: 1; }
+
+  .done-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--done);
+  }
+
+  /* Add card button */
+  .add-card-btn {
+    margin: 0 12px 12px;
+    padding: 8px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--card-radius);
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans TC', sans-serif;
+    width: calc(100% - 24px);
+  }
+
+  .add-card-btn:hover {
+    border-color: #3e4460;
+    color: var(--text);
+    background: var(--surface2);
+  }
+
+  /* Empty placeholder */
+  .empty-placeholder {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 12px;
+    padding: 20px 12px;
+    opacity: 0.6;
+    display: none;
+  }
+  .cards-list:empty + .empty-placeholder,
+  .cards-list.is-empty + .empty-placeholder { display: block; }
+
+  /* Drag ghost indicator */
+  .drop-indicator {
+    height: 3px;
+    background: var(--done);
+    border-radius: 2px;
+    margin: 2px 0;
+    display: none;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: var(--surface2);
+    border: 1px solid var(--done);
+    color: var(--done);
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 9999;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 1.8s forwards;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes toastOut { to{opacity:0;transform:translateY(10px)} }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .board-wrapper { padding: 16px; }
+    .column { width: 260px; }
   }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📋 外包追蹤進度表</h1>
-  <span class="sync-status loading" id="sync-status">連線中…</span>
+  <div class="logo">KANBAN</div>
+  <h1>工單看板</h1>
+  <div class="tag-count" id="globalCount"></div>
 </header>
 
-<div class="form-panel">
-  <div class="form-title">新增工單</div>
-  <div class="form-grid">
-    <div class="form-group">
-      <label>客戶名稱</label>
-      <input type="text" id="f-customer" placeholder="輸入客戶名稱">
-    </div>
-    <div class="form-group">
-      <label>零件圖號</label>
-      <input type="text" id="f-part" placeholder="輸入圖號">
-    </div>
-    <div class="form-group">
-      <label>外包廠商</label>
-      <input type="text" id="f-vendor" placeholder="輸入廠商名稱">
-    </div>
-    <div class="form-group">
-      <label>加工數量</label>
-      <input type="number" id="f-qty" placeholder="數量" min="1">
-    </div>
-    <div class="form-group full">
-      <label>預計交期</label>
-      <input type="date" id="f-deadline">
-    </div>
-  </div>
-  <button class="btn-add" id="btn-add" onclick="addOrder()">＋ 新增工單</button>
-</div>
+<div class="board-wrapper">
 
-<div class="board-header">
-  <div class="board-title">工單看板</div>
-  <span id="count-badge">共 0 筆</span>
-</div>
-<div id="cards-container">
-  <div class="empty-state"><div class="icon">⏳</div><div>載入中…</div></div>
+  <!-- 待處理 -->
+  <div class="column col-todo" id="col-todo" data-col="todo">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-title">待處理</span>
+      <span class="col-count" id="count-todo">0</span>
+    </div>
+    <div class="cards-list" id="list-todo"></div>
+    <p class="empty-placeholder">尚無工單</p>
+    <button class="add-card-btn" onclick="addCard('todo')">＋ 新增工單</button>
+  </div>
+
+  <!-- 進行中 -->
+  <div class="column col-doing" id="col-doing" data-col="doing">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-title">進行中</span>
+      <span class="col-count" id="count-doing">0</span>
+    </div>
+    <div class="cards-list" id="list-doing"></div>
+    <p class="empty-placeholder">尚無工單</p>
+    <button class="add-card-btn" onclick="addCard('doing')">＋ 新增工單</button>
+  </div>
+
+  <!-- 待審核 -->
+  <div class="column col-review" id="col-review" data-col="review">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-title">待審核</span>
+      <span class="col-count" id="count-review">0</span>
+    </div>
+    <div class="cards-list" id="list-review"></div>
+    <p class="empty-placeholder">尚無工單</p>
+    <button class="add-card-btn" onclick="addCard('review')">＋ 新增工單</button>
+  </div>
+
+  <!-- 已完成 ✨ NEW -->
+  <div class="column col-done" id="col-done" data-col="done">
+    <div class="col-header">
+      <div class="col-dot"></div>
+      <span class="col-title">已完成</span>
+      <span class="col-count" id="count-done">0</span>
+    </div>
+    <div class="cards-list" id="list-done"></div>
+    <p class="empty-placeholder">完成工單後拖曳至此</p>
+  </div>
+
 </div>
 
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbwjfuKA9-5r_59GN2AZj0wzG3b4KfwhG-XYUlpEEk7J4Kj0aI5S4wHF81eNsJZ2og5z/exec';
+// ─── Data ───────────────────────────────────────────────────────
+let cards = [
+  { id:'TK-001', title:'修復登入頁面 CSS 跑版問題', col:'todo', priority:'high', type:'Bug', assignee:'李' },
+  { id:'TK-002', title:'新增使用者角色管理功能', col:'todo', priority:'mid', type:'功能', assignee:'王' },
+  { id:'TK-003', title:'整合第三方金流 API', col:'doing', priority:'high', type:'功能', assignee:'陳' },
+  { id:'TK-004', title:'優化資料庫查詢效能', col:'doing', priority:'mid', type:'優化', assignee:'張' },
+  { id:'TK-005', title:'撰寫 API 文件', col:'review', priority:'low', type:'文件', assignee:'林' },
+  { id:'TK-006', title:'更新首頁設計稿', col:'review', priority:'mid', type:'設計', assignee:'吳' },
+  { id:'TK-007', title:'修復 Email 發送失敗問題', col:'done', priority:'high', type:'Bug', assignee:'黃' },
+];
 
-let orders = [];
-let busy = false;
+let dragSrc = null;
+let cardCounter = 8;
 
-function setSyncStatus(state) {
-  const el = document.getElementById('sync-status');
-  if (state === 'ok') { el.textContent = '✅ 已同步'; el.className = 'sync-status ok'; }
-  else if (state === 'err') { el.textContent = '❌ 連線失敗'; el.className = 'sync-status err'; }
-  else { el.textContent = '⏳ 同步中…'; el.className = 'sync-status loading'; }
-}
-
-async function apiGet() {
-  const res = await fetch(API + '?action=getAll');
-  return await res.json();
-}
-
-async function apiPost(body) {
-  await fetch(API, {
-    method: 'POST',
-    body: JSON.stringify(body)
-  });
-}
-
-async function loadOrders() {
-  try {
-    setSyncStatus('loading');
-    orders = await apiGet();
-    setSyncStatus('ok');
-    render();
-  } catch(e) {
-    setSyncStatus('err');
-    document.getElementById('cards-container').innerHTML =
-      '<div class="empty-state"><div class="icon">❌</div><div>連線失敗，請確認網路後重新整理</div></div>';
-  }
-}
-
-async function addOrder() {
-  if (busy) return;
-  const customer = document.getElementById('f-customer').value.trim();
-  const part = document.getElementById('f-part').value.trim();
-  const vendor = document.getElementById('f-vendor').value.trim();
-  const qty = document.getElementById('f-qty').value.trim();
-  const deadline = document.getElementById('f-deadline').value;
-  if (!customer || !part) { alert('請至少填寫「客戶名稱」與「零件圖號」'); return; }
-
-  const order = {
-    id: Date.now().toString(),
-    customer, part, vendor, qty, deadline,
-    status: '0', photo: '',
-    createdAt: new Date().toLocaleString('zh-TW')
-  };
-
-  busy = true;
-  document.getElementById('btn-add').disabled = true;
-  setSyncStatus('loading');
-
-  try {
-    await apiPost({ action: 'add', order });
-    orders.unshift(order);
-    ['f-customer','f-part','f-vendor','f-qty','f-deadline'].forEach(id => document.getElementById(id).value = '');
-    setSyncStatus('ok');
-    render();
-  } catch(e) {
-    setSyncStatus('err');
-    alert('新增失敗，請檢查網路連線');
-  }
-  busy = false;
-  document.getElementById('btn-add').disabled = false;
-}
-
-async function deleteOrder(id) {
-  if (!confirm('確定要永久刪除此工單？')) return;
-  setSyncStatus('loading');
-  try {
-    await apiPost({ action: 'delete', id });
-    orders = orders.filter(o => o.id !== id);
-    setSyncStatus('ok');
-    render();
-  } catch(e) { setSyncStatus('err'); alert('刪除失敗，請重試'); }
-}
-
-async function updateNote(id, note) {
-  const o = orders.find(o => o.id === id);
-  if (o) o.status = note;
-  setSyncStatus('loading');
-  try {
-    await apiPost({ action: 'updateStatus', id, status: note });
-    setSyncStatus('ok');
-  } catch(e) { setSyncStatus('err'); }
-}
-
-async function moveOrder(id, dir) {
-  const idx = orders.findIndex(o => o.id === id);
-  if (idx < 0) return;
-  const target = idx + dir;
-  if (target < 0 || target >= orders.length) return;
-  [orders[idx], orders[target]] = [orders[target], orders[idx]];
-  render();
-  setSyncStatus('loading');
-  try {
-    await apiPost({ action: 'reorder', ids: orders.map(o => o.id) });
-    setSyncStatus('ok');
-  } catch(e) { setSyncStatus('err'); }
-}
-
-async function handlePhoto(id, input) {
-  const file = input.files[0];
-  if (!file) return;
-  setSyncStatus('loading');
-  try {
-    const photo = await compressImage(file, 400, 0.5);
-    const o = orders.find(o => o.id === id);
-    if (o) o.photo = photo;
-    const img = document.getElementById('photo-' + id);
-    if (img) { img.src = photo; img.style.display = 'block'; img.onclick = function(){ openLightbox(photo); }; }
-    await apiPost({ action: 'updatePhoto', id, photo });
-    setSyncStatus('ok');
-  } catch(e) { setSyncStatus('err'); alert('照片上傳失敗，請重試'); }
-}
-
-function compressImage(file, maxWidth, quality) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        let w = img.width, h = img.height;
-        if (w > maxWidth) { h = Math.round(h * maxWidth / w); w = maxWidth; }
-        canvas.width = w; canvas.height = h;
-        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', quality));
-      };
-      img.onerror = reject;
-      img.src = e.target.result;
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
-
+// ─── Render ─────────────────────────────────────────────────────
 function render() {
-  const container = document.getElementById('cards-container');
-  document.getElementById('count-badge').textContent = '共 ' + orders.length + ' 筆';
-  if (orders.length === 0) {
-    container.innerHTML = '<div class="empty-state"><div class="icon">📋</div><div>目前無工單，請新增</div></div>';
-    return;
-  }
-  container.innerHTML = orders.map((o) => {
+  const cols = ['todo','doing','review','done'];
+  cols.forEach(col => {
+    const list = document.getElementById('list-' + col);
+    const count = document.getElementById('count-' + col);
+    const colCards = cards.filter(c => c.col === col);
 
-    const photoHtml = o.photo
-      ? `<img id="photo-${o.id}" class="photo-thumb" src="${o.photo}" style="display:block" onclick="openLightbox(this.src)" title="點擊放大">`
-      : `<img id="photo-${o.id}" class="photo-thumb" style="display:none" onclick="openLightbox(this.src)">`;
-    // 交期格式修正
-    let deadlineDisplay = '未設定';
-    if (o.deadline) {
-      deadlineDisplay = String(o.deadline).substring(0,10).replace(/-/g, '/');
+    list.innerHTML = '';
+    colCards.forEach(card => {
+      list.appendChild(makeCard(card));
+    });
+
+    count.textContent = colCards.length;
+    list.classList.toggle('is-empty', colCards.length === 0);
+  });
+
+  // Global stats
+  const total = cards.length;
+  const done = cards.filter(c => c.col === 'done').length;
+  document.getElementById('globalCount').innerHTML =
+    `<span>共 ${total} 張工單</span><span style="color:var(--done)">✓ ${done} 已完成</span>`;
+}
+
+function makeCard(data) {
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.draggable = true;
+  div.dataset.id = data.id;
+
+  const priorityMap = { high:'priority-high', mid:'priority-mid', low:'priority-low' };
+  const priorityLabel = { high:'高優先', mid:'中優先', low:'低優先' };
+  const isDone = data.col === 'done';
+
+  div.innerHTML = `
+    <div class="card-id">${data.id}</div>
+    <div class="card-title">${isDone ? `<span class="done-check">✓</span> ` : ''}${data.title}</div>
+    <div class="card-meta">
+      <span class="badge ${priorityMap[data.priority]}">${priorityLabel[data.priority]}</span>
+      <span class="badge type-badge">${data.type}</span>
+      <div class="card-assignee" title="${data.assignee}">${data.assignee}</div>
+    </div>
+  `;
+
+  // Drag events
+  div.addEventListener('dragstart', e => {
+    dragSrc = data.id;
+    setTimeout(() => div.classList.add('dragging'), 0);
+    e.dataTransfer.effectAllowed = 'move';
+  });
+  div.addEventListener('dragend', () => {
+    div.classList.remove('dragging');
+    dragSrc = null;
+    document.querySelectorAll('.column').forEach(c => c.classList.remove('drag-over'));
+  });
+
+  return div;
+}
+
+// ─── Column drop targets ─────────────────────────────────────────
+document.querySelectorAll('.column').forEach(col => {
+  col.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    col.classList.add('drag-over');
+  });
+  col.addEventListener('dragleave', e => {
+    if (!col.contains(e.relatedTarget)) col.classList.remove('drag-over');
+  });
+  col.addEventListener('drop', e => {
+    e.preventDefault();
+    col.classList.remove('drag-over');
+    if (!dragSrc) return;
+
+    const targetCol = col.dataset.col;
+    const card = cards.find(c => c.id === dragSrc);
+    if (!card || card.col === targetCol) return;
+
+    const prevCol = card.col;
+    card.col = targetCol;
+    render();
+
+    if (targetCol === 'done') {
+      showToast(`✓ ${card.id} 已移至「已完成」`);
     }
-    // 建立時間完整顯示
-    let createdDisplay = '—';
-    if (o.createdAt) {
-      const cs = String(o.createdAt);
-      if (cs.includes('T')) {
-        createdDisplay = cs.substring(0,16).replace('T',' ').replace(/-/g,'/');
-      } else {
-        createdDisplay = cs;
-      }
-    }
-    return `
-    <div class="card" id="card-${o.id}">
-      <div class="card-top">
-        <div class="card-sort">
-          <button class="sort-btn" onclick="moveOrder('${o.id}',-1)">▲</button>
-          <button class="sort-btn" onclick="moveOrder('${o.id}',1)">▼</button>
-        </div>
-        <div class="card-body">
-          <div class="card-header-row">
-            <div>
-              <div class="card-customer">${o.customer || '—'}</div>
-              <div class="card-part">圖號：${o.part || '—'}</div>
-            </div>
-            <button class="btn-delete" onclick="deleteOrder('${o.id}')">🗑</button>
-          </div>
-          <div class="card-info-row">
-            <div class="info-item"><span class="info-label">外包廠商</span><span class="info-val">${o.vendor || '—'}</span></div>
-            <div class="info-item"><span class="info-label">加工數量</span><span class="info-val">${o.qty || '—'}</span></div>
-            <div class="info-item"><span class="info-label">預計交期</span><span class="info-val">${deadlineDisplay}</span></div>
-            <div class="info-item" style="grid-column:1/-1"><span class="info-label">建立時間</span><span class="info-val" style="font-size:13px">${createdDisplay}</span></div>
-          </div>
-          <div class="note-row">
-            <div class="note-label">📝 備註</div>
-            <textarea class="note-textarea" placeholder="輸入備註內容…" onblur="updateNote('${o.id}',this.value)">${o.status||''}</textarea>
-          </div>
-          <div class="photo-row">
-            <button class="btn-photo" onclick="document.getElementById('photo-input-${o.id}').click()">📷 拍照上傳</button>
-            <input class="photo-input" id="photo-input-${o.id}" type="file" accept="image/*" capture="environment" onchange="handlePhoto('${o.id}',this)">
-            ${photoHtml}
-          </div>
-        </div>
-      </div>
-    </div>`;
-  }).join('');
+  });
+});
+
+// ─── Add card ───────────────────────────────────────────────────
+function addCard(col) {
+  const title = prompt('請輸入工單標題：');
+  if (!title || !title.trim()) return;
+
+  const id = 'TK-' + String(cardCounter++).padStart(3,'0');
+  cards.push({ id, title: title.trim(), col, priority:'mid', type:'任務', assignee:'我' });
+  render();
 }
 
-function openLightbox(src) {
-  document.getElementById('lightbox-img').src = src;
-  document.getElementById('lightbox').classList.add('open');
-}
-function closeLightbox() {
-  document.getElementById('lightbox').classList.remove('open');
+// ─── Toast ──────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
 }
 
-loadOrders();
-setInterval(loadOrders, 30000);
+// ─── Init ───────────────────────────────────────────────────────
+render();
 </script>
-<div class="lightbox" id="lightbox" onclick="closeLightbox()">
-  <span class="lightbox-close" onclick="closeLightbox()">✕</span>
-  <img id="lightbox-img" src="" alt="照片">
-</div>
 </body>
 </html>
